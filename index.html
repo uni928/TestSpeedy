@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>HTML差し替えツール</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      font-family: monospace;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>HTMLを入力してください</h1>
+  <p>「表示」ボタンを押すと、入力したHTMLでこのページ全体が置き換わります。</p>
+
+  <textarea id="htmlInput" placeholder="ここにHTMLを入力..."></textarea>
+  <br>
+  <button onclick="replacePage()">表示</button>
+
+  <script>
+    function replacePage() {
+      const html = document.getElementById("htmlInput").value;
+      document.open();              // 現在のドキュメントを開き、
+      document.write(html);         // 新しいHTMLを書き込み、
+      document.close();             // 書き込みを終了します。
+    }
+  </script>
+</body>
+</html>
