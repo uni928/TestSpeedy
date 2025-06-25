@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Editor</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      height: 100%;
+      font-family: sans-serif;
+    }
+    #editor-wrapper {
+      display: flex;
+      height: 40%;
+    }
+    textarea {
+      width: 33.33%;
+      height: 100%;
+      resize: none;
+      border: 1px solid #000;
+      font-family: monospace;
+      padding: 8px;
+    }
+    iframe {
+      height: 60%;
+      width: 100%;
+      border: 1px solid #000;
+      border-top: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="editor-wrapper">
+    <textarea id="html" placeholder="HTML"></textarea>
+    <textarea id="css" placeholder="CSS"></textarea>
+    <textarea id="js" placeholder="JS"></textarea>
+  </div>
+  <iframe id="preview"></iframe>
+
+  <script>
+    const htmlInput = document.getElementById("html");
+    const cssInput = document.getElementById("css");
+    const jsInput = document.getElementById("js");
+    const preview = document.getElementById("preview");
+
+    function updatePreview() {
+      const html = htmlInput.value || "";
+      const css = cssInput.value ? `<style>${cssInput.value}</style>` : "";
+      const js = jsInput.value ? `<script>${jsInput.value}<\/script>` : "";
+
+      const content = `${html}\n${css}\n${js}`;
+      preview.srcdoc = content;
+    }
+
+    [htmlInput, cssInput, jsInput].forEach(input =>
+      input.addEventListener("input", updatePreview)
+    );
+  </script>
+</body>
+</html>
