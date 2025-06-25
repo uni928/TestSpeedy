@@ -1,12 +1,18 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>HTML差し替えツール</title>
+  <title>HTML Test Tool</title>
   <style>
-    body {
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
       font-family: sans-serif;
-      padding: 2rem;
+    }
+    #controller {
+      padding: 1rem;
+      background: #f0f0f0;
     }
     textarea {
       width: 100%;
@@ -14,25 +20,74 @@
       font-family: monospace;
     }
     button {
-      margin-top: 1rem;
+      margin-top: 0.5rem;
       padding: 0.5rem 1rem;
+    }
+    #previewContainer {
+      width: 100%;
+      height: calc(100% - 320px); /* 高さ調整 */
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
     }
   </style>
 </head>
 <body onload="document.getElementById('htmlInput').focus();">
-  <h1>HTMLを入力してください</h1>
-  <p>「表示」ボタンを押すと、入力したHTMLでこのページ全体が置き換わります。</p>
+  <div id="controller">
+    <h2>HTML Tester</h2>
+    <p>HTML を貼り付けて、Render (Safe Mode) を押して、エラー文を取得して下さい。その後 Render (Replace Whole Page) を押して、全体の見た目を確認して下さい。</p>
 
-  <textarea id="htmlInput" placeholder="ここにHTMLを入力..."></textarea>
-  <br>
-  <button onclick="replacePage()">表示</button>
+    <textarea id="htmlInput" placeholder="Enter your HTML here..."></textarea>
+    <br>
+    <button onclick="renderInIframe()">Render (Safe Mode)</button>
+    <button onclick="replaceEntirePage()">Render (Replace Whole Page)</button>
+  </div>
+
+  <div id="previewContainer">
+    <iframe id="previewIframe"></iframe>
+  </div>
 
   <script>
-    function replacePage() {
+    function renderInIframe() {
       const html = document.getElementById("htmlInput").value;
-      document.open();              // 現在のドキュメントを開き、
-      document.write(html);         // 新しいHTMLを書き込み、
-      document.close();             // 書き込みを終了します。
+      const iframe = document.getElementById("previewIframe");
+
+      // iframeモード表示
+      document.getElementById("controller").style.display = "block";
+      document.getElementById("previewContainer").style.display = "block";
+
+      iframe.srcdoc = html;
+    }
+
+    function replaceEntirePage() {
+      const html = document.getElementById("htmlInput").value;
+      const wrapped = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rendered HTML</title>
+</head>
+<body>
+  ${html}
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      document.body.innerHTML = '<pre style="color:red;padding:1rem;">' +
+        'An error occurred:\\n' +
+        message + '\\n' +
+        'Line: ' + lineno + ', Column: ' + colno + '\\n' +
+        'Stack: ' + (error && error.stack ? error.stack : 'N/A') +
+        '</pre>';
+    };
+  <\\/script>
+</body>
+</html>
+      `;
+      document.open();
+      document.write(wrapped);
+      document.close();
     }
   </script>
 </body>
