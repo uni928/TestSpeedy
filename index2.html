@@ -59,7 +59,7 @@ capturedErrors = [];
 let awaitingPrompt = false;
 
 function ChatGPT() {
-  capturedErrors = [];
+  //capturedErrors = [];
   awaitingPrompt = true;
   renderInIframe();
 }
@@ -91,7 +91,9 @@ ${html}
 }
 
 window.addEventListener("message", function(event) {
-  capturedErrors.push(event.data.message);
+  if (!capturedErrors.includes(event.data.message)) {
+    capturedErrors.push(event.data.message);
+  }
   if(awaitingPrompt) {
     const lines = htmlInput.value.split('\n').map((line, i) => `${i + 1}: ${line}`).join('\n');
     const errorTextString = capturedErrors.filter(Boolean).join('\n');
