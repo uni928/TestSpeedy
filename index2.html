@@ -25,7 +25,7 @@
     }
     #previewContainer {
       width: 100%;
-      height: calc(100% - 320px); /* height adjustment */
+      height: calc(100% - 320px); /* Adjusted height */
     }
     iframe {
       width: 100%;
@@ -38,13 +38,14 @@
 <iframe id="sandbox" style="display:none"></iframe>
   <div id="controller">
     <h2>HTML Tester</h2>
-    <p>Paste the HTML, click "View (Safe Mode)" and check if there are any error messages. If there are any error messages, generate a prompt with the "Generate ChatGPT Prompt" button and make corrections. If there are no error messages, then click "View (Replace Whole Page)" to check the whole page.</p>
+    <p>Paste your HTML and click "Render (Safe Mode)" to check for any error messages. If errors are present, click the "Generate ChatGPT Prompt" button to create a prompt for fixing them. If there are no errors, click "Render (Replace Whole Page)" to check the overall layout.</p>
 
     <textarea id="htmlInput" placeholder="Enter your HTML here..."></textarea>
     <br>
-    <button onclick="renderInIframe()">View (Safe Mode)</button>
-    <button onclick="replaceEntirePage()">View (Replace Whole Page)</button>
+    <button onclick="renderInIframe()">Render (Safe Mode)</button>
+    <button onclick="replaceEntirePage()">Render (Replace Whole Page)</button>
     <button onclick="ChatGPT()">Generate ChatGPT Prompt</button>
+    <button onclick="Download()">Download as HTML</button>
   </div>
 
   <div id="previewContainer">
@@ -52,14 +53,52 @@
   </div>
 
   <script>
+
 const sandbox = document.getElementById('sandbox');
 
-// Error log
+// Array to hold captured console errors
 capturedErrors = [];
-let awaitingPrompt = false;
+let awaitingPrompt = false;  // ← Flag for awaiting error response
+
+  function Download() {
+    const date = new Date();
+    date.setTime(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
+    const str_date = date.toISOString().replace('T', ' ').substring(0,19);
+    const textarea = document.getElementById("htmlInput");
+    const fileName = str_date + "_CreatedHTML.html";
+    if(typeof window.showSaveFilePicker != 'function'){
+      const blob = new Blob([textarea.value], {type:"text/plain"});
+      let downloadTag = document.createElement('a');
+      downloadTag.href = URL.createObjectURL(blob);
+      downloadTag.download = fileName;
+      downloadTag.click();
+    }
+    else
+    {
+      let downloadTag = document.createElement('a');
+      downloadTag.addEventListener('click', async () => {
+        const opts = {
+          suggestedName: fileName,
+          types: [{
+            description: 'Text file',
+            accept: {'text/plain': ['.html']},
+          }],
+        };
+        try{
+          const handle = await window.showSaveFilePicker(opts);
+          const writable = await handle.createWritable();
+          await writable.write(textarea.value);
+          await writable.close();
+        } catch {
+        }
+      });
+      downloadTag.click();
+    }
+  }
+
+// 👉 You can use capturedErrors later for generating prompts or displaying
 
 function ChatGPT() {
-  //capturedErrors = [];
   awaitingPrompt = true;
   renderInIframe();
 }
@@ -68,6 +107,7 @@ function renderInIframe() {
   const html = document.getElementById("htmlInput").value;
   const iframe = document.getElementById("previewIframe");
 
+  // Show iframe mode
   document.getElementById("controller").style.display = "block";
   document.getElementById("previewContainer").style.display = "block";
 
@@ -75,8 +115,9 @@ function renderInIframe() {
 <!DOCTYPE html>
 <html><head>
   <script>
+    let errorLock = false;
     window.onerror = function(message, source, lineno, colno, error) {
-      parent.postMessage({ type: 'sandbox-error', message: message + ' (May be Line: ' + (lineno - 9) + ')' }, '*');
+      parent.postMessage({ type: 'sandbox-error', message: message + ' (May be Line: ' + (lineno - 12) + ')' }, '*');
     };
   <\/script>
 </head><body>
@@ -91,13 +132,13 @@ ${html}
 }
 
 window.addEventListener("message", function(event) {
-  if (!capturedErrors.includes(event.data.message)) {
+  if (!capturedErrors.includes(event.data.message)) {  // 🔸 Avoid duplicates
     capturedErrors.push(event.data.message);
   }
   if(awaitingPrompt) {
     const lines = htmlInput.value.split('\n').map((line, i) => `${i + 1}: ${line}`).join('\n');
     const errorTextString = capturedErrors.filter(Boolean).join('\n');
-    navigator.clipboard.writeText(`Could you please explain the cause of the following error and how to fix it?
+    navigator.clipboard.writeText(`Can you explain the causes and solutions for the following errors?
 
 ${errorTextString}
 
@@ -107,7 +148,7 @@ Here is the content of the related file:
 ${lines}
 \`\`\`
 
-If there are any important points or caveats, please include them as well.`).then(() => {
+Please also mention any important points or things to watch out for.`).then(() => {
       alert("Copied to clipboard!");
     }).catch(err => {
       alert("Failed to copy: " + err);
