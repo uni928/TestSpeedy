@@ -45,6 +45,7 @@
     <button onclick="renderInIframe()">表示 (Safe Mode)</button>
     <button onclick="replaceEntirePage()">表示 (Replace Whole Page)</button>
     <button onclick="ChatGPT()">ChatGPT プロンプト生成</button>
+    <button onclick="Download()">html としてダウンロード</button>
   </div>
 
   <div id="previewContainer">
@@ -90,6 +91,42 @@ console.error = function(...args) {
   originalConsoleError.apply(console, args); // 元の console.error も実行
 };
 */
+
+  function Download() {
+    const date = new Date();
+    date.setTime(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
+    const str_date = date.toISOString().replace('T', ' ').substring(0,19);
+    const textarea = document.getElementById("htmlInput");
+    const fileName = str_date + "_作成したHTML.html";
+    if(typeof window.showSaveFilePicker != 'function'){
+      const blob = new Blob([textarea.value], {type:"text/plain"});
+      let downloadTag = document.createElement('a');
+      downloadTag.href = URL.createObjectURL(blob);
+      downloadTag.download = fileName;
+      downloadTag.click();
+    }
+    else
+    {
+      let downloadTag = document.createElement('a');
+      downloadTag.addEventListener('click', async () => {
+        const opts = {
+          suggestedName: fileName,
+          types: [{
+            description: 'Text file',
+            accept: {'text/plain': ['.html']},
+          }],
+        };
+        try{
+          const handle = await window.showSaveFilePicker(opts);
+          const writable = await handle.createWritable();
+          await writable.write(textarea.value);
+          await writable.close();
+        } catch {
+        }
+      });
+      downloadTag.click();
+    }
+  }
 
 // 👉 capturedErrors を後で使って、プロンプトや表示に活用できます
 
