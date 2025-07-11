@@ -194,6 +194,14 @@ ${lines}
 
     function replaceEntirePage() {
       const html = document.getElementById("htmlInput").value;
+
+      const newTab = window.open("", "_blank");
+
+      if (newTab) {
+          newTab.document.open();
+          newTab.document.write(html);
+          newTab.document.close();
+      } else {
       const wrapped = `
 <!DOCTYPE html>
 <html lang="en">
@@ -219,6 +227,7 @@ ${lines}
       document.open();
       document.write(wrapped);
       document.close();
+      }
     }
   </script>
 </body>
