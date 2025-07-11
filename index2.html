@@ -25,7 +25,7 @@
     }
     #previewContainer {
       width: 100%;
-      height: calc(100% - 320px); /* Adjusted height */
+      height: calc(100% - 320px); /* Adjust height */
     }
     iframe {
       width: 100%;
@@ -38,12 +38,12 @@
 <iframe id="sandbox" style="display:none"></iframe>
   <div id="controller">
     <h2>HTML Tester</h2>
-    <p>Paste your HTML and click "Render (Safe Mode)" to check for any error messages. If errors are present, click the "Generate ChatGPT Prompt" button to create a prompt for fixing them. If there are no errors, click "Render (Replace Whole Page)" to check the overall layout.</p>
+    <p>Paste your HTML below and click "Render (Safe Mode)" to check if any errors are displayed. If there are errors, use the "Generate ChatGPT Prompt" button to create a prompt for fixing them. If there are no errors, you can then click "Render (Replace Whole Page)" to view the full layout.</p>
 
     <textarea id="htmlInput" placeholder="Enter your HTML here..."></textarea>
     <br>
     <button onclick="renderInIframe()">Render (Safe Mode)</button>
-    <button onclick="replaceEntirePage()">Render (Replace Whole Page)</button>
+    <button onclick="replaceEntirePage()">Render (Open New Tab)</button>
     <button onclick="ChatGPT()">Generate ChatGPT Prompt</button>
     <button onclick="Download()">Download as HTML</button>
   </div>
@@ -58,14 +58,46 @@ const sandbox = document.getElementById('sandbox');
 
 // Array to hold captured console errors
 capturedErrors = [];
-let awaitingPrompt = false;  // ← Flag for awaiting error response
+let awaitingPrompt = false;  // Flag to indicate waiting for prompt
+
+/*
+// Normal JS errors
+window.onerror = function(message, source, lineno, colno, error) {
+  const errorMsg = `[JS Error] ${message} (Line: ${lineno}, Column: ${colno})`;
+  capturedErrors.push(errorMsg);
+  return false; // Continue default error display
+};
+
+// Unhandled Promise rejections
+window.addEventListener('unhandledrejection', function(event) {
+  const errorMsg = `[Promise Error] ${event.reason}`;
+  capturedErrors.push(errorMsg);
+});
+
+// Hook console.error
+const originalConsoleError = console.error;
+console.error = function(...args) {
+  const formatted = args.map(arg => {
+    if (typeof arg === 'object') {
+      try {
+        return JSON.stringify(arg);
+      } catch {
+        return '[Object]';
+      }
+    }
+    return String(arg);
+  }).join(' ');
+  capturedErrors.push(`[Console Error] ${formatted}`);
+  originalConsoleError.apply(console, args); // Execute original console.error
+};
+*/
 
   function Download() {
     const date = new Date();
     date.setTime(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
     const str_date = date.toISOString().replace('T', ' ').substring(0,19);
     const textarea = document.getElementById("htmlInput");
-    const fileName = str_date + "_CreatedHTML.html";
+    const fileName = str_date + "_GeneratedHTML.html";
     if(typeof window.showSaveFilePicker != 'function'){
       const blob = new Blob([textarea.value], {type:"text/plain"});
       let downloadTag = document.createElement('a');
@@ -80,7 +112,7 @@ let awaitingPrompt = false;  // ← Flag for awaiting error response
         const opts = {
           suggestedName: fileName,
           types: [{
-            description: 'Text file',
+            description: 'HTML file',
             accept: {'text/plain': ['.html']},
           }],
         };
@@ -96,69 +128,79 @@ let awaitingPrompt = false;  // ← Flag for awaiting error response
     }
   }
 
-// 👉 You can use capturedErrors later for generating prompts or displaying
+// 👉 You can later use capturedErrors for prompts or display
 
 function ChatGPT() {
+  //capturedErrors = [];
   awaitingPrompt = true;
   renderInIframe();
 }
 
-function renderInIframe() {
-  const html = document.getElementById("htmlInput").value;
-  const iframe = document.getElementById("previewIframe");
+    function renderInIframe() {
+      const html = document.getElementById("htmlInput").value;
+      const iframe = document.getElementById("previewIframe");
 
-  // Show iframe mode
-  document.getElementById("controller").style.display = "block";
-  document.getElementById("previewContainer").style.display = "block";
+      // Show iframe mode
+      document.getElementById("controller").style.display = "block";
+      document.getElementById("previewContainer").style.display = "block";
 
-  const wrapped = `
+        const wrapped = `
 <!DOCTYPE html>
 <html><head>
   <script>
     let errorLock = false;
     window.onerror = function(message, source, lineno, colno, error) {
-      parent.postMessage({ type: 'sandbox-error', message: message + ' (May be Line: ' + (lineno - 12) + ')' }, '*');
+      parent.postMessage({ type: 'sandbox-error', message: message + ' (Approx. Line: ' + (lineno - 12) + ')' }, '*');
     };
   <\/script>
 </head><body>
 ${html}
 </body></html>`;
 
-  const blob = new Blob([wrapped], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  sandbox.src = url;
+        const blob = new Blob([wrapped], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        sandbox.src = url;
 
-  iframe.srcdoc = html;
-}
+      iframe.srcdoc = html;
+    }
 
-window.addEventListener("message", function(event) {
-  if (!capturedErrors.includes(event.data.message)) {  // 🔸 Avoid duplicates
-    capturedErrors.push(event.data.message);
-  }
-  if(awaitingPrompt) {
-    const lines = htmlInput.value.split('\n').map((line, i) => `${i + 1}: ${line}`).join('\n');
-    const errorTextString = capturedErrors.filter(Boolean).join('\n');
-    navigator.clipboard.writeText(`Can you explain the causes and solutions for the following errors?
 
-${errorTextString}
+    window.addEventListener("message", function(event) {
+        if (!capturedErrors.includes(event.data.message)) {  // 🔸 Check for duplicates
+          capturedErrors.push(event.data.message);
+        }
+        if(awaitingPrompt) {
+          const lines = htmlInput.value.split('\n').map((line, i) => `${i + 1}: ${line}`).join('\n');
+          const errorTextString = capturedErrors.filter(Boolean).join('\n');
+          navigator.clipboard.writeText(`Can you help me identify the cause of the following errors and how to fix them?
 
-Here is the content of the related file:
+  ${errorTextString}
+
+Here is the content of the related HTML file:
 
 \`\`\`html
 ${lines}
 \`\`\`
 
-Please also mention any important points or things to watch out for.`).then(() => {
+If there are any key points or caveats, please include them too.`).then(() => {
       alert("Copied to clipboard!");
     }).catch(err => {
       alert("Failed to copy: " + err);
     });
-  }
-});
+        }
+    });
 
-function replaceEntirePage() {
-  const html = document.getElementById("htmlInput").value;
-  const wrapped = `
+    function replaceEntirePage() {
+      const html = document.getElementById("htmlInput").value;
+
+      const newTab = window.open("", "_blank");
+
+      if (newTab) {
+          newTab.document.open();
+          newTab.document.write(html);
+          newTab.document.close();
+      } else {
+      const wrapped = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -179,11 +221,12 @@ function replaceEntirePage() {
   <\\/script>
 </body>
 </html>
-  `;
-  document.open();
-  document.write(wrapped);
-  document.close();
-}
+      `;
+      document.open();
+      document.write(wrapped);
+      document.close();
+      }
+    }
   </script>
 </body>
 </html>
